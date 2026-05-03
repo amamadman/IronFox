@@ -1,0 +1,26 @@
+From 1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c Mon Sep 17 00:00:00 2001
+From: amamadman <falixum@gmail.com>
+Date: Sat, 02 May 2026 00:00:00 +0000
+Subject: [PATCH] feat: Replace Share with Forward in expanded toolbar
+
+---
+ .../toolbar/BrowserToolbarMiddleware.kt           | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarMiddleware.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarMiddleware.kt
+index 7a1b2c3d4e5f6..8b9c0d1e2f3a4 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarMiddleware.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarMiddleware.kt
+@@ -771,7 +771,7 @@ internal class BrowserToolbarMiddleware(
+         val primarySlotAction = ShortcutType.fromValue(settings.toolbarExpandedShortcut)
+             ?.toToolbarAction() ?: getBookmarkAction()
+ 
+         return listOf(
+             ToolbarActionConfig(primarySlotAction) { shouldUseExpandedToolbar && isTallWindow && !isWideWindow },
+-            ToolbarActionConfig(ToolbarAction.Share) { shouldUseExpandedToolbar && isTallWindow && !isWideWindow },
++            ToolbarActionConfig(ToolbarAction.Forward) { shouldUseExpandedToolbar && isTallWindow && !isWideWindow },
+             ToolbarActionConfig(ToolbarAction.NewTab) { shouldUseExpandedToolbar && isTallWindow && !isWideWindow },
+             ToolbarActionConfig(ToolbarAction.TabCounter) { shouldUseExpandedToolbar && isTallWindow && !isWideWindow },
+             ToolbarActionConfig(ToolbarAction.Menu) { shouldUseExpandedToolbar && isTallWindow && !isWideWindow },
+-- 
+2.53.0

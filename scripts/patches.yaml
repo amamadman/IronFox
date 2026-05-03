@@ -54,7 +54,21 @@ categories:
       and simplify or declutter interface elements to enhance user clarity and recognition.
 
 patches:
-  # Accessibility
+  # IronFoxed custom patches
+  - file: "fenix-expanded-toolbar-forward.patch"
+    name: "Replace Share with Forward in Expanded Toolbar"
+    description: "Replaces the Share button with a Forward button in the expanded bottom navigation bar."
+    reason: "Forward navigation is more useful than Share in the expanded toolbar, as Share is already accessible from the menu."
+    effect: "The expanded toolbar shows a Forward button instead of Share, allowing quicker forward navigation."
+    category: "User Interface"
+
+  - file: "fenix-fix-addressbar-back.patch"
+    name: "Fix Address Bar Back Navigation"
+    description: "Fixes the back navigation when exiting the address bar search dialog to return to the current browser page instead of the home screen."
+    reason: "When tapping the address bar and pressing back, the browser currently navigates to the home screen instead of returning to the page being viewed. This patch keeps BrowserFragment in the back stack so the dialog dismisses cleanly back to the current page."
+    effect: "Pressing back from the address bar search dialog returns to the current browser page instead of the home screen."
+    category: "User Interface"
+   # Accessibility
   - file: "fenix-force-enable-zoom-by-default.patch"
     name: "Enable Universal Zoom"
     description: "Allows zoom on all websites, even if the website tries to block it, by default"
@@ -907,7 +921,7 @@ patches:
 
   - file: "fenix-ironfox-oled-theme.patch"
     name: "OLED Theme (Fenix)"
-    description: "Adds support for true OLED black theme to Fenix"
-    reason: "To provide users with the option to reduce battery consumption and eye strain on OLED displays by using true black theme."
-    effect: "Users can toggle a UI option for an OLED-optimized dark theme, which helps improve visual comfort and power efficiency on OLED screens."
+    description: "Adds support for true OLED black theme to Fenix and uses it for Private Browsing"
+    reason: "To provide users with the option to reduce battery consumption and eye strain on OLED displays by using true black theme, and to replace the purple Private Browsing theme with OLED black."
+    effect: "Users can toggle a UI option for an OLED-optimized dark theme, which helps improve visual comfort and power efficiency on OLED screens. Private Browsing always uses OLED theme."
     category: "User Interface"

@@ -1,0 +1,59 @@
+From 2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d Mon Sep 17 00:00:00 2001
+From: amamadman <falixum@gmail.com>
+Date: Sat, 02 May 2026 00:00:00 +0000
+Subject: [PATCH] fix: Simplify address bar back navigation
+
+Removes the actionGlobalHome() navigation before SearchDialog in
+handleToolbarClick() so BrowserFragment stays in the back stack.
+Simplifies dismissDialogAndGoBack() to just dismiss the dialog.
+BrowserFragment is revealed underneath, restoring the correct tab
+without the null session ID issue.
+
+---
+ .../toolbar/BrowserToolbarController.kt           | 9 +--------
+ .../search/SearchDialogFragment.kt               | 8 +-------
+ 2 files changed, 2 insertions(+), 15 deletions(-)
+
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarController.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarController.kt
+index 1a2b3c4d5e6f7..2b3c4d5e6f7a8 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarController.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarController.kt
+@@ -168,14 +168,7 @@ class DefaultBrowserToolbarController(
+     override fun handleToolbarClick() {
+         Events.searchBarTapped.record(Events.SearchBarTappedExtra("BROWSER"))
+-        // If we're displaying awesomebar search results, Home screen will not be visible (it's
+-        // covered up with the search results). So, skip the navigation event in that case.
+-        // If we don't, there's a visual flickr as we navigate to Home and then display search
+-        // results on top it.
+-        if (currentSession?.content?.searchTerms.isNullOrBlank()) {
+-            navController.navigate(
+-                BrowserFragmentDirections.actionGlobalHome(),
+-            )
+-        }
+         navController.navigate(
+             BrowserFragmentDirections.actionGlobalSearchDialog(
+                 currentSession?.id,
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt
+index 3c4d5e6f7a8b9..4d5e6f7a8b9c0 100644
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt
+@@ -465,13 +465,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler
+     private fun dismissDialogAndGoBack() {
+         runIfFragmentIsAttached {
+-            // In case we're displaying search results, we wouldn't have navigated to home, and
+-            // so we don't need to navigate "back to" browser fragment.
+-            // See mirror of this logic in BrowserToolbarController#handleToolbarClick.
+-            if (store.state.searchTerms.isBlank()) {
+-                val args by navArgs<SearchDialogFragmentArgs>()
+-                args.sessionId?.let {
+-                    findNavController().navigate(
+-                        SearchDialogFragmentDirections.actionGlobalBrowser(null),
+-                    )
+-                }
+-            }
+-
+             view?.hideKeyboard()
+             dismissAllowingStateLoss()
+         }
+-- 
+2.53.0
