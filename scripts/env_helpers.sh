@@ -28,7 +28,7 @@ export IRONFOX_OS
 
 # Set architecture
 readonly PLATFORM_ARCH=$(uname -m)
-if [[ "${PLATFORM_ARCH}" == 'arm64' ]]; then
+if [[ "${PLATFORM_ARCH}" == 'arm64' ]] || [[ "${PLATFORM_ARCH}" == 'aarch64' ]]; then
     readonly IRONFOX_PLATFORM_ARCH='aarch64'
 else
     readonly IRONFOX_PLATFORM_ARCH='x86-64'

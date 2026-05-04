@@ -10,17 +10,17 @@ BrowserFragment is revealed underneath, restoring the correct tab
 without the null session ID issue.
 
 ---
- .../toolbar/BrowserToolbarController.kt           | 9 +--------
- .../search/SearchDialogFragment.kt               | 8 +-------
- 2 files changed, 2 insertions(+), 15 deletions(-)
+ .../toolbar/BrowserToolbarController.kt           | 23 +------------------
+ .../search/SearchDialogFragment.kt               | 12 ---------
+ 2 files changed, 2 insertions(+), 33 deletions(-)
 
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarController.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarController.kt
-index 1a2b3c4d5e6f7..2b3c4d5e6f7a8 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarController.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/components/toolbar/BrowserToolbarController.kt
-@@ -168,14 +168,7 @@ class DefaultBrowserToolbarController(
+@@ -143,28 +143,12 @@
+ 
      override fun handleToolbarClick() {
-         Events.searchBarTapped.record(Events.SearchBarTappedExtra("BROWSER"))
+-        Events.searchBarTapped.record(Events.SearchBarTappedExtra("BROWSER"))
 -        // If we're displaying awesomebar search results, Home screen will not be visible (it's
 -        // covered up with the search results). So, skip the navigation event in that case.
 -        // If we don't, there's a visual flickr as we navigate to Home and then display search
@@ -29,15 +29,35 @@ index 1a2b3c4d5e6f7..2b3c4d5e6f7a8 100644
 -            navController.navigate(
 -                BrowserFragmentDirections.actionGlobalHome(),
 -            )
+-            navController.navigate(
+-                BrowserFragmentDirections.actionGlobalSearchDialog(
+-                    currentSession?.id,
+-                ),
+-                ToolbarNavOptionsHelper.getToolbarNavOptions(activity),
+-            )
+-        } else {
+-            navController.navigate(
+-                BrowserFragmentDirections.actionGlobalSearchDialog(
+-                    currentSession?.id,
+-                ),
+-                ToolbarNavOptionsHelper.getToolbarNavOptions(activity),
+-            )
 -        }
-         navController.navigate(
-             BrowserFragmentDirections.actionGlobalSearchDialog(
-                 currentSession?.id,
++        Events.searchBarTapped.record(Events.SearchBarTappedExtra("BROWSER"))
++        navController.navigate(
++            BrowserFragmentDirections.actionGlobalSearchDialog(
++                currentSession?.id,
++            ),
++            ToolbarNavOptionsHelper.getToolbarNavOptions(activity),
++        )
+     }
+ 
+     override fun handleTabCounterClick() {
+
 diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt
-index 3c4d5e6f7a8b9..4d5e6f7a8b9c0 100644
 --- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt
 +++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt
-@@ -465,13 +465,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler
+@@ -698,18 +698,6 @@
      private fun dismissDialogAndGoBack() {
          runIfFragmentIsAttached {
 -            // In case we're displaying search results, we wouldn't have navigated to home, and
@@ -55,5 +75,4 @@ index 3c4d5e6f7a8b9..4d5e6f7a8b9c0 100644
              view?.hideKeyboard()
              dismissAllowingStateLoss()
          }
--- 
-2.53.0
+

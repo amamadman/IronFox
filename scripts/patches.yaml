@@ -68,6 +68,7 @@ patches:
     reason: "When tapping the address bar and pressing back, the browser currently navigates to the home screen instead of returning to the page being viewed. This patch keeps BrowserFragment in the back stack so the dialog dismisses cleanly back to the current page."
     effect: "Pressing back from the address bar search dialog returns to the current browser page instead of the home screen."
     category: "User Interface"
+
    # Accessibility
   - file: "fenix-force-enable-zoom-by-default.patch"
     name: "Enable Universal Zoom"
