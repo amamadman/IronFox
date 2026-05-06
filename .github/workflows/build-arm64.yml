@@ -77,7 +77,7 @@ jobs:
 
       - name: Create build container
         run: |
-          docker create --name ironfox-build \
+          docker run -d --name ironfox-build \
             -v "$GITHUB_WORKSPACE:/app" \
             -v /tmp/ironfox-keys:/opt/IronFox \
             -e IRONFOX_ANDROID_KEYSTORE=/opt/IronFox/ironfox-android-keystore.jks \
@@ -85,8 +85,8 @@ jobs:
             -e IRONFOX_ANDROID_KEYSTORE_PASS_FILE=/opt/IronFox/ironfox-android-keystore-pass.txt \
             -e IRONFOX_ANDROID_KEYSTORE_KEY_PASS_FILE=/opt/IronFox/ironfox-android-signing-key-pass.txt \
             -e IRONFOX_SIGN_SKIP_ADB=1 \
-            ironfox-builder
-          docker start ironfox-build
+            ironfox-builder \
+            sleep infinity
 
       - name: Get sources
         run: docker exec ironfox-build bash -c 'set -euo pipefail; df -h /; bash /app/scripts/get_sources.sh'
@@ -97,17 +97,9 @@ jobs:
       - name: Build arm64
         run: docker exec ironfox-build bash -c 'set -euo pipefail; df -h /; yes y | bash /app/scripts/build.sh arm64; df -h /'
 
-      - name: Debug via SSH on build failure
-        if: failure() && inputs.enable_debug
-        uses: mxschmitt/action-tmate@v3
-
       - name: Find APK
         if: always()
         run: find "$GITHUB_WORKSPACE/build/outputs" -name "*.apk" -type f 2>/dev/null || true
-
-      - name: Debug via SSH if no APK found
-        if: always() && inputs.enable_debug
-        uses: mxschmitt/action-tmate@v3
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -132,3 +124,9 @@ jobs:
             --target "$GITHUB_REF_NAME"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug via SSH
+        if: always() && inputs.enable_debug
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: false
