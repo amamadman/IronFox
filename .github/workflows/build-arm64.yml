@@ -1,0 +1,139 @@
+name: Build IronFox arm64
+
+on:
+  workflow_dispatch:
+    inputs:
+      enable_debug:
+        description: "Enable SSH debug session (tmate)"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Maximize disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo apt-get purge -y --auto-remove \
+            azure-cli google-cloud-cli microsoft-edge-stable \
+            firefox powershell mono-complete libmono* \
+            gh amazon-ecr-credential-helper eb-cli \
+            || true
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          docker system prune -af || true
+          df -h /
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t ironfox-builder -f Dockerfile .
+
+      - name: Restore or create keystore
+        id: keystore
+        run: |
+          mkdir -p /tmp/ironfox-keys
+
+          if [ -n "${{ secrets.IRONFOX_KEYSTORE_BASE64 }}" ]; then
+            echo "Restoring keystore from secret..."
+            echo '${{ secrets.IRONFOX_KEYSTORE_BASE64 }}' | base64 -d > /tmp/ironfox-keys/ironfox-android-keystore.jks
+            echo "new_keystore=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "No keystore secret found — generating new one..."
+            keytool -genkey -v \
+              -keystore /tmp/ironfox-keys/ironfox-android-keystore.jks \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -alias ironfox \
+              -dname "CN=Debug,O=Debug,C=US" \
+              -storepass ironfox -keypass ironfox
+            echo "new_keystore=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          KEYSTORE_PASS="${{ secrets.IRONFOX_KEYSTORE_PASS }}"
+          KEY_PASS="${{ secrets.IRONFOX_KEY_PASS }}"
+          echo -n "${KEYSTORE_PASS:-ironfox}" > /tmp/ironfox-keys/ironfox-android-keystore-pass.txt
+          echo -n "${KEY_PASS:-ironfox}" > /tmp/ironfox-keys/ironfox-android-signing-key-pass.txt
+          touch /tmp/ironfox-keys/ironfox-sb-gapi-key.txt
+
+          ls -la /tmp/ironfox-keys/
+
+      - name: Upload new keystore for safekeeping
+        if: steps.keystore.outputs.new_keystore == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keystore-backup
+          path: |
+            /tmp/ironfox-keys/ironfox-android-keystore.jks
+          retention-days: 90
+
+      - name: Build IronFox arm64
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/app" \
+            -v /tmp/ironfox-keys:/opt/IronFox \
+            -e IRONFOX_ANDROID_KEYSTORE=/opt/IronFox/ironfox-android-keystore.jks \
+            -e IRONFOX_ANDROID_KEYSTORE_KEY_ALIAS=ironfox \
+            -e IRONFOX_ANDROID_KEYSTORE_PASS_FILE=/opt/IronFox/ironfox-android-keystore-pass.txt \
+            -e IRONFOX_ANDROID_KEYSTORE_KEY_PASS_FILE=/opt/IronFox/ironfox-android-signing-key-pass.txt \
+            -e IRONFOX_SB_GAPI_KEY_FILE=/opt/IronFox/ironfox-sb-gapi-key.txt \
+            -e IRONFOX_SIGN_SKIP_ADB=1 \
+            ironfox-builder \
+            bash -c '
+              set -euo pipefail
+              df -h /
+              echo "=== Getting sources ==="
+              bash /app/scripts/get_sources.sh
+              echo "=== Preparing sources ==="
+              bash /app/scripts/prebuild.sh
+              echo "=== Building arm64 ==="
+              bash /app/scripts/build.sh arm64
+              echo "=== Build complete ==="
+              df -h /
+            '
+
+      - name: Find APK
+        if: always()
+        run: |
+          find "$GITHUB_WORKSPACE" -name "*.apk" -type f 2>/dev/null || true
+          find "$GITHUB_WORKSPACE/build" -name "*.apk" -type f 2>/dev/null || true
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ironfox-arm64-apk
+          path: build/**/*.apk
+          retention-days: 14
+
+      - name: Create GitHub Release
+        if: success()
+        run: |
+          APK=$(find "$GITHUB_WORKSPACE/build/outputs/apk" -name '*.apk' -type f | head -1)
+          if [ -z "$APK" ]; then
+            echo "No APK found — skipping release"
+            exit 0
+          fi
+          APK_NAME=$(basename "$APK")
+          TAG="v$(date +%Y%m%d-%H%M%S)"
+          gh release create "$TAG" "$APK" \
+            --title "IronFox arm64 $(date +%Y-%m-%d)" \
+            --notes "Automated arm64 build from $(echo $GITHUB_SHA | cut -c1-7)" \
+            --target "$GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug via SSH (tmate)
+        if: ${{ inputs.enable_debug }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
