@@ -87,6 +87,7 @@ jobs:
             -e IRONFOX_SIGN_SKIP_ADB=1 \
             ironfox-builder \
             sleep infinity
+          docker exec ironfox-build git config --global --add safe.directory /app
 
       - name: Get sources
         run: docker exec ironfox-build bash -c 'set -euo pipefail; df -h /; bash /app/scripts/get_sources.sh'
@@ -98,12 +99,10 @@ jobs:
         run: docker exec ironfox-build bash -c 'set -euo pipefail; df -h /; yes y | bash /app/scripts/build.sh arm64; df -h /'
 
       - name: Find APK
-        if: always()
         run: find "$GITHUB_WORKSPACE/build/outputs" -name "*.apk" -type f 2>/dev/null || true
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: ironfox-arm64-apk
           path: build/outputs/**/*.apk
