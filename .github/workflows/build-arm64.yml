@@ -85,6 +85,7 @@ jobs:
             -e IRONFOX_ANDROID_KEYSTORE_PASS_FILE=/opt/IronFox/ironfox-android-keystore-pass.txt \
             -e IRONFOX_ANDROID_KEYSTORE_KEY_PASS_FILE=/opt/IronFox/ironfox-android-signing-key-pass.txt \
             -e IRONFOX_SIGN_SKIP_ADB=1 \
+            -e MOZ_MAKE_FLAGS=-j2 \
             ironfox-builder \
             sleep infinity
           docker exec ironfox-build git config --global --add safe.directory /app
