@@ -12,6 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    permissions:
+      contents: write
 
     steps:
       - name: Maximize disk space
@@ -26,7 +28,7 @@ jobs:
           sudo apt-get purge -y --auto-remove \
             azure-cli google-cloud-cli microsoft-edge-stable \
             firefox powershell mono-complete libmono* \
-            gh amazon-ecr-credential-helper eb-cli \
+            amazon-ecr-credential-helper eb-cli \
             || true
           sudo apt-get autoremove -y
           sudo apt-get clean
@@ -110,29 +112,34 @@ jobs:
         run: docker exec ironfox-build bash -c 'set -euo pipefail; df -h /; bash /app/scripts/prebuild.sh'
 
       - name: Build arm64
-        run: docker exec ironfox-build bash -c 'set -euo pipefail; df -h /; yes y | bash /app/scripts/build.sh arm64; df -h /'
+        run: docker exec ironfox-build bash -c 'set -euo pipefail; df -h /; yes y | bash /app/scripts/build.sh arm64; df -h /' || [ $? -eq 141 ]
 
       - name: Find APK
-        run: find "$GITHUB_WORKSPACE/build/outputs" -name "*.apk" -type f 2>/dev/null || true
+        if: always()
+        id: find_apk
+        run: |
+          APK=$(find "$GITHUB_WORKSPACE/build/outputs/apk" -name '*.apk' -type f 2>/dev/null | head -1 || true)
+          if [ -n "$APK" ]; then
+            echo "apk=$APK" >> "$GITHUB_OUTPUT"
+            echo "Found: $APK"
+          else
+            echo "No APK found"
+          fi
 
       - name: Upload APK
+        if: always() && steps.find_apk.outputs.apk
         uses: actions/upload-artifact@v4
         with:
           name: ironfox-arm64-apk
-          path: build/outputs/**/*.apk
+          path: ${{ steps.find_apk.outputs.apk }}
           retention-days: 14
 
       - name: Create GitHub Release
-        if: success()
+        if: always() && steps.find_apk.outputs.apk
         run: |
-          APK=$(find "$GITHUB_WORKSPACE/build/outputs/apk" -name '*.apk' -type f | head -1)
-          if [ -z "$APK" ]; then
-            echo "No APK found — skipping release"
-            exit 0
-          fi
           TAG="v$(date +%Y%m%d-%H%M%S)"
-          gh release create "$TAG" "$APK" \
-            --title "IronFox arm64 $(date +%Y-%m-%d)" \
+          gh release create "$TAG" "${{ steps.find_apk.outputs.apk }}" \
+            --title "IronFoxed arm64 $(date +%Y-%m-%d)" \
             --notes "Automated arm64 build from $(echo $GITHUB_SHA | cut -c1-7)" \
             --target "$GITHUB_REF_NAME"
         env:
