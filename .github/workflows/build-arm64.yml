@@ -38,6 +38,10 @@ jobs:
 
       - name: Add swap space
         run: |
+          if [ -f /swapfile ]; then
+            sudo swapoff /swapfile
+            sudo rm /swapfile
+          fi
           sudo fallocate -l 16G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
